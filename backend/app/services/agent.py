@@ -185,7 +185,9 @@ class CourseCopilotAgent:
     """
 
     def __init__(self, provider: Optional[BaseLLMProvider] = None):
-        self.provider = provider or get_llm_provider()
+        # An injected provider is fixed for tests; otherwise resolve the active
+        # provider at request time so the Settings page can switch providers.
+        self._provider = provider
         self.tools = CourseCopilotTools()
 
     async def process_chat(
@@ -297,7 +299,8 @@ class CourseCopilotAgent:
             "- Never make up course facts, quiz solutions, or pretend to modify live AWS cloud accounts."
         )
 
-        response_text = await self.provider.generate_response(
+        provider = self._provider or get_llm_provider()
+        response_text = await provider.generate_response(
             prompt=user_message,
             system_prompt=system_prompt,
             context_chunks=context_chunks
