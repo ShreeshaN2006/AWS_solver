@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     mongodb_uri: str = "mongodb://localhost:27017"
     mongodb_db: str = "aws_academy_copilot"
-    canvas_base_url: str = "https://awsacademy.instructure.edu"
+    canvas_base_url: str = "https://awsacademy.instructure.com"
     canvas_course_id: int = 183194
     canvas_client_id: str = ""
     canvas_client_secret: str = ""
