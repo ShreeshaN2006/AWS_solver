@@ -3,6 +3,10 @@ import pytest
 from app.services import llm_provider, vector_store as vector_store_module
 from app.services.agent import CourseCopilotTools
 from app.services.lab_service import COURSE_LABS
+from fastapi import HTTPException
+
+from app.api.settings import get_system_settings, update_llm_provider
+from app.config import settings
 from app.services.llm_provider import LocalMockProvider, get_llm_provider
 from app.services.vector_store import VectorStore
 
@@ -40,3 +44,19 @@ def test_vector_store_resolves_provider_when_used(monkeypatch):
 
     store = VectorStore()
     assert store.provider is expected_provider
+
+
+
+@pytest.mark.asyncio
+async def test_settings_api_does_not_return_database_uri():
+    payload = await get_system_settings()
+    assert "mongodb_uri" not in payload
+    assert "mongodb_configured" in payload
+
+
+@pytest.mark.asyncio
+async def test_switching_to_openai_without_a_key_is_rejected(monkeypatch):
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", None)
+    with pytest.raises(HTTPException) as error:
+        await update_llm_provider(provider="openai")
+    assert error.value.status_code == 400
