@@ -29,6 +29,8 @@ class OpenAIProvider(BaseLLMProvider):
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None, embedding_model: Optional[str] = None):
         from openai import AsyncOpenAI
         self.api_key = api_key or settings.OPENAI_API_KEY or os.getenv("OPENAI_API_KEY")
+        if not self.api_key:
+            raise ValueError("OPENAI_API_KEY is required when LLM_PROVIDER=openai.")
         self.model = model or settings.OPENAI_MODEL
         self.embedding_model = embedding_model or settings.OPENAI_EMBEDDING_MODEL
         self.client = AsyncOpenAI(api_key=self.api_key)
@@ -76,13 +78,25 @@ class BedrockProvider(BaseLLMProvider):
         self.region = settings.AWS_REGION
         self.model_id = settings.BEDROCK_MODEL_ID
         self.embedding_model_id = settings.BEDROCK_EMBEDDING_MODEL_ID
-        self.client = boto3.client(
-            service_name="bedrock-runtime",
-            region_name=self.region,
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID or os.getenv("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY or os.getenv("AWS_SECRET_ACCESS_KEY"),
-            aws_session_token=settings.AWS_SESSION_TOKEN or os.getenv("AWS_SESSION_TOKEN")
-        )
+        # Use explicit credentials only when a complete key pair is configured.
+        # Otherwise let boto3 use its standard chain (profile, SSO, web identity,
+        # container credentials, or an EC2 instance role).
+        access_key = settings.AWS_ACCESS_KEY_ID or os.getenv("AWS_ACCESS_KEY_ID")
+        secret_key = settings.AWS_SECRET_ACCESS_KEY or os.getenv("AWS_SECRET_ACCESS_KEY")
+        session_token = settings.AWS_SESSION_TOKEN or os.getenv("AWS_SESSION_TOKEN")
+        if bool(access_key) != bool(secret_key):
+            raise ValueError(
+                "Configure both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, "
+                "or use the AWS SDK default credential chain."
+            )
+        client_options = {"service_name": "bedrock-runtime", "region_name": self.region}
+        if access_key and secret_key:
+            client_options.update(
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key,
+                aws_session_token=session_token,
+            )
+        self.client = boto3.client(**client_options)
 
     async def generate_response(
         self,
@@ -141,9 +155,9 @@ class BedrockProvider(BaseLLMProvider):
 
 class LocalMockProvider(BaseLLMProvider):
     """
-    Intelligent local AI provider that operates offline with zero external dependencies.
-    Generates rich, course-aware AWS explanations, compares services, synthesizes notes,
-    and calculates dense normalized semantic vectors.
+    Offline demonstration provider with deterministic, hashed lexical vectors.
+    It can demonstrate the chat and retrieval workflow without paid credentials, but its
+    vectors are not semantic embeddings and it should not be used to judge paraphrase retrieval.
     """
     def __init__(self, vector_dim: int = 128):
         self.vector_dim = vector_dim
@@ -264,9 +278,9 @@ class LocalMockProvider(BaseLLMProvider):
 
     async def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """
-        Calculates a deterministic 128-dimensional dense vector representation
-        derived from character n-grams and hashing, normalized to unit length.
-        Ensures consistent, reproducible cosine similarity for RAG retrieval.
+        Creates deterministic lexical-hash vectors for offline demonstrations only.
+        These vectors are reproducible but are not semantic embeddings. Use OpenAI or
+        Bedrock for semantic retrieval across paraphrased questions.
         """
         embeddings = []
         for text in texts:
@@ -284,18 +298,20 @@ class LocalMockProvider(BaseLLMProvider):
         return embeddings
 
 def get_llm_provider(provider_type: Optional[str] = None) -> BaseLLMProvider:
-    provider = (provider_type or settings.LLM_PROVIDER).lower()
-    if provider == "openai" and settings.OPENAI_API_KEY:
+    """Return exactly the requested provider; never silently downgrade to the offline mock."""
+    provider = (provider_type or settings.LLM_PROVIDER).strip().lower()
+    if provider == "local_mock":
+        return LocalMockProvider()
+    if provider == "openai":
         try:
             return OpenAIProvider()
-        except Exception as e:
-            logger.warning(f"Failed to initialize OpenAI provider: {e}. Falling back to LocalMockProvider.")
-            return LocalMockProvider()
-    elif provider == "bedrock" and settings.AWS_ACCESS_KEY_ID:
+        except Exception as exc:
+            raise RuntimeError(f"OpenAI provider is not configured correctly: {exc}") from exc
+    if provider == "bedrock":
         try:
             return BedrockProvider()
-        except Exception as e:
-            logger.warning(f"Failed to initialize Bedrock provider: {e}. Falling back to LocalMockProvider.")
-            return LocalMockProvider()
-    else:
-        return LocalMockProvider()
+        except Exception as exc:
+            raise RuntimeError(f"Amazon Bedrock provider is not configured correctly: {exc}") from exc
+    raise ValueError(
+        f"Unsupported LLM_PROVIDER '{provider}'. Choose local_mock, openai, or bedrock."
+    )
