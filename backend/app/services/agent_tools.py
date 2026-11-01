@@ -75,24 +75,30 @@ class AgentTools:
 
     def explain_topic(self, topic: str, module_id: str | None = None) -> dict:
         results = retrieval_service.search(topic, module_id=module_id)
-        if not results:
-            return {
-                "answer": "I could not find this topic in indexed course material. Please upload the related module guide or transcript.",
-                "sources": [],
-            }
-        lead = results[0]
-        return {
-            "answer": f"From {lead.module_title}: {lead.extracted_content[:450]}",
-            "sources": [
+        source_records = []
+        context_parts = []
+
+        for index, chunk in enumerate(results, start=1):
+            source_records.append(
                 {
-                    "module": c.module_title,
-                    "document": c.document_name,
-                    "page_number": c.page_number,
-                    "timestamp": c.timestamp,
-                    "source_url": c.source_url,
+                    "module": chunk.module_title,
+                    "document": chunk.document_name,
+                    "page_number": chunk.page_number,
+                    "timestamp": chunk.timestamp,
+                    "source_url": chunk.source_url,
                 }
-                for c in results
-            ],
+            )
+            page = f" | page {chunk.page_number}" if chunk.page_number else ""
+            timestamp = f" | timestamp {chunk.timestamp}" if chunk.timestamp else ""
+            source_label = (
+                f"[Source {index}: {chunk.module_title} | {chunk.document_name}"
+                f"{page}{timestamp}]"
+            )
+            context_parts.append(f"{source_label}\n{chunk.extracted_content}")
+
+        return {
+            "context": "\n\n".join(context_parts),
+            "sources": source_records,
         }
 
     def summarise_lesson(self, item_id: str) -> dict:
