@@ -13,13 +13,8 @@ class DatabaseManager:
     async def connect(cls):
         try:
             logger.info(f"Connecting to MongoDB at {settings.MONGODB_URI}...")
-            cls.client = AsyncIOMotorClient(
-                settings.MONGODB_URI,
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=5000
-            )
+            cls.client = AsyncIOMotorClient(settings.MONGODB_URI, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000)
             cls.db = cls.client[settings.MONGODB_DB_NAME]
-            # Ping database
             await cls.client.admin.command('ping')
             logger.info(f"Connected successfully to MongoDB database: {settings.MONGODB_DB_NAME}")
             await cls.create_indexes()
@@ -31,33 +26,31 @@ class DatabaseManager:
         if cls.db is None:
             return
         try:
-            # Course & Module indexes
             await cls.db.courses.create_index("course_id", unique=True)
             await cls.db.modules.create_index([("course_id", 1), ("module_id", 1)], unique=True)
             await cls.db.modules.create_index("order")
             await cls.db.module_items.create_index([("module_id", 1), ("item_id", 1)])
-
-            # Documents & Chunks indexes
             await cls.db.learning_documents.create_index("doc_id", unique=True)
             await cls.db.learning_documents.create_index([("course_id", 1), ("module_id", 1)])
             await cls.db.document_chunks.create_index("chunk_id", unique=True)
             await cls.db.document_chunks.create_index([("course_id", 1), ("module_id", 1)])
             await cls.db.document_chunks.create_index("doc_id")
-
-            # Chat indexes
             await cls.db.chat_sessions.create_index("session_id", unique=True)
             await cls.db.chat_sessions.create_index([("user_id", 1), ("updated_at", -1)])
             await cls.db.chat_messages.create_index([("session_id", 1), ("created_at", 1)])
-
-            # Practice indexes
             await cls.db.practice_questions.create_index("question_id", unique=True)
             await cls.db.practice_questions.create_index([("module_id", 1), ("difficulty", 1)])
             await cls.db.practice_attempts.create_index([("user_id", 1), ("created_at", -1)])
-
-            # Labs & Progress
             await cls.db.lab_progress.create_index([("user_id", 1), ("lab_id", 1)], unique=True)
             await cls.db.user_progress.create_index([("user_id", 1), ("course_id", 1), ("item_id", 1)], unique=True)
             await cls.db.study_plans.create_index([("user_id", 1), ("course_id", 1)])
+
+            # Autonomous agent state: one current run per user/course, idempotent tasks,
+            # immutable-ish discovery snapshots for recovery/audit.
+            await cls.db.agent_runs.create_index([("user_id", 1), ("course_id", 1)], unique=True)
+            await cls.db.agent_tasks.create_index([("user_id", 1), ("task_key", 1)], unique=True)
+            await cls.db.agent_tasks.create_index([("run_id", 1), ("state", 1), ("priority", 1)])
+            await cls.db.agent_discovery.create_index([("user_id", 1), ("course_id", 1)], unique=True)
 
             logger.info("MongoDB indexes verified.")
         except Exception as e:
