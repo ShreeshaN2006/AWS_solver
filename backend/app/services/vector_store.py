@@ -8,8 +8,14 @@ from app.config import settings
 logger = logging.getLogger("app.services.vector_store")
 
 class VectorStore:
-    def __init__(self):
-        self.provider = get_llm_provider()
+    def __init__(self, provider=None):
+        # Keep injected providers for tests; otherwise resolve the configured
+        # provider when a request runs so Settings changes take effect.
+        self._provider = provider
+
+    @property
+    def provider(self):
+        return self._provider or get_llm_provider()
 
     async def add_chunks(self, chunks: List[Dict[str, Any]]) -> int:
         """Insert or replace document chunks in MongoDB."""
