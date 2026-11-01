@@ -38,7 +38,7 @@ async def update_llm_provider(
     aws_key: Optional[str] = Body(None, embed=True),
     aws_secret: Optional[str] = Body(None, embed=True),
 ):
-    """Switch providers after validating configuration; secrets are held in memory only."""
+    """Select a provider after checking basic local configuration; secrets stay in memory only."""
     p_clean = provider.lower().strip()
     if p_clean not in ["local_mock", "openai", "bedrock"]:
         raise HTTPException(
@@ -78,7 +78,7 @@ async def update_llm_provider(
         "status": "success",
         "active_provider": settings.LLM_PROVIDER,
         "message": (
-            f"AI provider switched to {settings.LLM_PROVIDER}. "
+            f"AI provider selection changed to {settings.LLM_PROVIDER}. Model credentials and permissions are verified when the next request uses the provider. "
             "Provider settings and submitted keys apply to this running backend process only. "
             "Re-index documents after switching providers because embedding spaces may differ."
         ),
