@@ -1,5 +1,6 @@
 from app.services.canvas_parser import canvas_parser
 from app.services.document_ingestion import DocumentIngestionService
+from app.services.embeddings import cosine_similarity
 from app.services.retrieval import RetrievalService
 
 
@@ -18,7 +19,12 @@ def test_canvas_module_parsing():
     assert "Cloud Concepts" in items[0].module_title
 
 
-def test_chunking_and_module_filtered_retrieval():
+def test_chunking_and_module_filtered_retrieval(monkeypatch):
+    # Keep tests deterministic and independent of external model credentials.
+    vector = [1.0, 0.0, 0.0]
+    monkeypatch.setattr("app.services.document_ingestion.embed_text", lambda _: vector)
+    monkeypatch.setattr("app.services.retrieval.embed_text", lambda _: vector)
+
     ingestion = DocumentIngestionService()
     retrieval = RetrievalService()
     chunks = ingestion.build_chunks(
@@ -32,3 +38,9 @@ def test_chunking_and_module_filtered_retrieval():
     results = retrieval.search("least privilege", module_id="m4")
     assert results
     assert results[0].module_id == "m4"
+    assert retrieval.search("least privilege", module_id="m5") == []
+
+
+def test_cosine_similarity_rejects_mismatched_dimensions():
+    assert cosine_similarity([1.0, 0.0], [1.0]) == 0.0
+    assert cosine_similarity([], [1.0]) == 0.0
