@@ -6,7 +6,8 @@ from app.services.agent_tools import agent_tools
 from app.services.canvas_parser import canvas_parser
 from app.core.config import settings
 from app.services.document_ingestion import DocumentIngestionService
-from app.services.llm_provider import get_llm_provider
+from app.services.embeddings import EmbeddingProviderError
+from app.services.llm_provider import LLMProviderError, get_llm_provider
 from app.services.retrieval import retrieval_service
 
 router = APIRouter()
@@ -38,18 +39,20 @@ def module_details(module_id: str) -> dict:
 
 @router.post("/tutor/ask", response_model=TutorResponse)
 def tutor_ask(payload: TutorRequest) -> TutorResponse:
-    explained = agent_tools.explain_topic(payload.question, module_id=payload.module_id)
-    provider = get_llm_provider()
-    context = "\n".join([source.get("module", "") for source in explained["sources"]])
-    answer = provider.respond(payload.question, context)
-    if explained["sources"]:
-        answer = f"{explained['answer']}\n\n{answer}"
+    try:
+        explained = agent_tools.explain_topic(payload.question, module_id=payload.module_id)
+        answer = get_llm_provider().respond(payload.question, explained["context"])
+    except (LLMProviderError, EmbeddingProviderError) as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     return TutorResponse(answer=answer, sources=explained["sources"])
 
 
 @router.get("/search")
 def search(query: str, module_id: str | None = None) -> dict:
-    return {"results": agent_tools.search_course_material(query, module_id=module_id)}
+    try:
+        return {"results": agent_tools.search_course_material(query, module_id=module_id)}
+    except EmbeddingProviderError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
 @router.post("/canvas/parse")
@@ -64,7 +67,7 @@ async def canvas_parse(file: UploadFile = File(...)) -> dict:
 @router.get("/integrations/canvas/modules")
 async def canvas_modules(authorization: str | None = Header(default=None)) -> dict:
     if not authorization:
-        raise HTTPException(status_code=401, detail="Provide OAuth ****** in Authorization header")
+        raise HTTPException(status_code=401, detail="Provide OAuth bearer token in Authorization header")
     headers = {"Authorization": authorization}
     url = f"{settings.canvas_base_url}/api/v1/courses/{settings.canvas_course_id}/modules"
     try:
@@ -85,16 +88,19 @@ async def ingest_document(
     learning_item_id: str | None = Form(default=None),
     source_url: str | None = Form(default=None),
 ) -> dict:
-    chunks = ingestion.build_chunks(
-        course_id=183194,
-        module_id=module_id,
-        module_title=module_title,
-        document_name=document_name,
-        text=text,
-        learning_item_id=learning_item_id,
-        source_url=source_url,
-    )
-    retrieval_service.ingest(chunks)
+    try:
+        chunks = ingestion.build_chunks(
+            course_id=settings.canvas_course_id,
+            module_id=module_id,
+            module_title=module_title,
+            document_name=document_name,
+            text=text,
+            learning_item_id=learning_item_id,
+            source_url=source_url,
+        )
+        retrieval_service.ingest(chunks)
+    except EmbeddingProviderError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     return {"ingested_chunks": len(chunks)}
 
 
