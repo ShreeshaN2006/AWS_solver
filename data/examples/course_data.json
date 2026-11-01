@@ -1,0 +1,35 @@
+{
+  "course_id": 183194,
+  "course_title": "AWS Academy Cloud Foundations",
+  "platform": "Canvas LMS",
+  "canvas_url": "https://awsacademy.instructure.com/courses/183194/modules",
+  "modules": [
+    {"module_id": "m1", "module_number": 1, "title": "Cloud Concepts Overview", "items": [{"item_id": "m1-item-1", "title": "Introduction"}]},
+    {"module_id": "m2", "module_number": 2, "title": "Cloud Economics and Billing", "items": [{"item_id": "m2-item-1", "title": "Billing Models"}]},
+    {"module_id": "m3", "module_number": 3, "title": "AWS Global Infrastructure Overview", "items": [{"item_id": "m3-item-1", "title": "Regions and AZs"}]},
+    {"module_id": "m4", "module_number": 4, "title": "AWS Cloud Security", "items": [{"item_id": "m4-item-1", "title": "Shared Responsibility"}]},
+    {"module_id": "m5", "module_number": 5, "title": "Networking and Content Delivery", "items": [{"item_id": "m5-item-1", "title": "VPC Basics"}]},
+    {"module_id": "m6", "module_number": 6, "title": "Compute", "items": [{"item_id": "m6-item-1", "title": "EC2 Concepts"}]},
+    {"module_id": "m7", "module_number": 7, "title": "Storage", "items": [{"item_id": "m7-item-1", "title": "S3 and EBS"}]},
+    {"module_id": "m8", "module_number": 8, "title": "Databases", "items": [{"item_id": "m8-item-1", "title": "RDS Intro"}]},
+    {"module_id": "m9", "module_number": 9, "title": "Cloud Architecture", "items": [{"item_id": "m9-item-1", "title": "Well-Architected"}]},
+    {"module_id": "m10", "module_number": 10, "title": "Auto Scaling and Monitoring", "items": [{"item_id": "m10-item-1", "title": "CloudWatch"}]}
+  ],
+  "additional_sections": [
+    "Introduction",
+    "Course Assessment",
+    "Sandbox Environment",
+    "Certification Resources",
+    "Feedback",
+    "Badges and Completion Certificates",
+    "AWS Terms and Conditions Resources"
+  ],
+  "labs": [
+    "Introduction to AWS IAM",
+    "Build your VPC and Launch a Web Server",
+    "Introduction to Amazon EC2",
+    "Working with EBS",
+    "Build a Database Server",
+    "Scale and Load Balance your Architecture"
+  ]
+}
