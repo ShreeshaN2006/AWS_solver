@@ -272,9 +272,10 @@ export interface SystemSettings {
   bedrock_model_id: string;
   bedrock_region: string;
   bedrock_has_credentials: boolean;
+  bedrock_uses_default_credential_chain: boolean;
   canvas_base_url: string;
   canvas_course_id: string;
   canvas_has_token: boolean;
-  mongodb_uri: string;
+  mongodb_configured: boolean;
   mongodb_db: string;
 }

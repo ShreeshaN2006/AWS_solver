@@ -6,7 +6,7 @@
 ![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi)
 ![React](https://img.shields.io/badge/Frontend-React%20%2B%20TypeScript-61DAFB?logo=react)
 ![MongoDB](https://img.shields.io/badge/Database-MongoDB%207.0-47A248?logo=mongodb)
-![Tests](https://img.shields.io/badge/Pytest-Passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-Pytest-informational)
 
 ---
 
@@ -46,9 +46,11 @@ Unlike simple question-and-answer chatbots, the Course Copilot operates as a ful
 - **Backend:** Python 3.11, FastAPI, Motor (Async MongoDB Driver), Pydantic v2.
 - **Database:** MongoDB 7.0 (with real connection `mongodb://localhost:27017` and indexing across courses, modules, chunks, chats, practice attempts, labs, and study plans).
 - **AI & RAG Engine:**
-  - **Provider Abstraction:** Dynamic switching between `local_mock` (zero API key offline heuristic provider), `openai` (GPT-4o-mini + text-embedding-3-small), and `bedrock` (Claude 3 + Titan Embeddings).
+  - **Provider Abstraction:** Runtime switching between `local_mock` (offline demonstration provider), `openai` (GPT-4o-mini + text-embedding-3-small), and `bedrock` (Claude 3 + Titan Embeddings). OpenAI and Bedrock initialization errors are surfaced instead of silently falling back to the mock.
   - **Semantic Retrieval (RAG):** Dense vector index with cosine similarity, chunk-level metadata (Course ID, Module ID, Module Title, Document Name, Page Number, Timestamp, Source URL).
 - **Document Processing:** PyMuPDF (`pymupdf`) for PDF extraction, BeautifulSoup4 for Canvas HTML module parsing, text chunker with sliding sentence-boundary overlap.
+
+**Embedding mode note:** OpenAI and Bedrock generate model embeddings for semantic retrieval. The offline `local_mock` provider uses deterministic hashed lexical vectors and canned topic responses; it is useful for a no-credentials demo, but it is not a semantic embedding model. Re-index uploaded documents after changing providers because embedding spaces may not be compatible.
 
 ---
 

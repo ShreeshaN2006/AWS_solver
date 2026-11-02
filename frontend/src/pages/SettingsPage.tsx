@@ -138,7 +138,7 @@ export const SettingsPage: React.FC = () => {
                 </span>
               </div>
               <p className="text-[11px] text-slate-500">
-                Zero API keys needed. Fully offline course-aware answers and semantic vector calculations.
+                Offline demo mode with canned AWS explanations and lexical-hash retrieval. It does not produce semantic embeddings.
               </p>
             </div>
 
@@ -176,7 +176,7 @@ export const SettingsPage: React.FC = () => {
                 </span>
               </div>
               <p className="text-[11px] text-slate-500">
-                Direct AWS Bedrock Claude 3 and Titan Embeddings execution.
+                Amazon Bedrock Claude 3 and Titan Embeddings, using explicit keys or the AWS SDK credential chain.
               </p>
             </div>
 
@@ -219,6 +219,7 @@ export const SettingsPage: React.FC = () => {
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono"
                 />
               </div>
+              <p className="text-[11px] text-slate-500">Prefer an IAM role or AWS SSO in hosted environments. Leave both fields blank to use the AWS SDK credential chain.</p>
             </div>
           )}
 
@@ -290,7 +291,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         <div className="text-[11px] text-slate-400 italic">
-          Security Rule: Password credentials are never requested or stored. The copilot operates read-only and will never alter Canvas records or submit quizzes.
+          Security: Keys entered here remain in backend process memory only. Prefer IAM roles or SSO over long-lived AWS keys. Canvas access remains read-only.
         </div>
       </div>
 
@@ -311,7 +312,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1 font-mono">
-          <div><strong>URI:</strong> {settings?.mongodb_uri || 'mongodb://localhost:27017'}</div>
+          <div><strong>Connection:</strong> {settings?.mongodb_configured ? 'Configured on backend' : 'Not configured'}</div>
           <div><strong>Database:</strong> {settings?.mongodb_db || 'aws_academy_copilot'}</div>
           <div className="text-emerald-700 font-sans font-bold pt-1">Status: Operational & Connected ✓</div>
         </div>
